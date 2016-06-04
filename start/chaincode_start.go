@@ -96,8 +96,7 @@ func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte
 	fmt.Println("running write()")
 
 	if len(args) != 4 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 4." +
-			"Product id, place id, temperature, and taime stamp.")
+		return nil, errors.New("Incorrect number of arguments. Expecting 4. Product id, place id, temperature, and taime stamp.")
 	}
 
 	productid = args[0] //rename for fun
@@ -148,5 +147,6 @@ func (t *SimpleChaincode) read(stub *shim.ChaincodeStub, args []string) ([]byte,
 		return nil, errors.New(jsonResp)
 	}
 
-	return valAsbytes, nil
+	//return valAsbytes, nil
+	return "asd", nil
 }
