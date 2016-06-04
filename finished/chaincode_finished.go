@@ -124,6 +124,7 @@ func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte
 	// now marshal it back to json, and write it to the cblockchain
 	new_json, _ := json.Marshal(entries)
 	new_json_str := string(new_json)
+	fmt.Println(new_json_str)
 
 	err = stub.PutState(productid, []byte(new_json_str)) //write the variable into the chaincode state
 	if err != nil {
