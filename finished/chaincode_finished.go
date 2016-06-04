@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 
+	"encoding/json"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
@@ -27,6 +28,16 @@ import (
 type SimpleChaincode struct {
 }
 
+// An entry for a product
+type DataEntry struct {
+	PlaceId     string `json:"placeid"`
+	Temperature string `json:"temperature"`
+	Timestamp   string `json:"timestamp"`
+}
+
+// ============================================================================================================================
+// Main
+// ============================================================================================================================
 func main() {
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
@@ -48,17 +59,18 @@ func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args [
 	return nil, nil
 }
 
-// Invoke isur entry point to invoke a chaincode function
+// Invoke is our entry point to invoke a chaincode function
 func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
 	fmt.Println("invoke is running " + function)
 
 	// Handle different functions
-	if function == "init" {
+	if function == "init" { //initialize the chaincode state, used as reset
 		return t.Init(stub, "init", args)
 	} else if function == "write" {
 		return t.write(stub, args)
 	}
-	fmt.Println("invoke did not find func: " + function)
+
+	fmt.Println("invoke did not find func: " + function) //error
 
 	return nil, errors.New("Received unknown function invocation")
 }
@@ -68,48 +80,73 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	fmt.Println("query is running " + function)
 
 	// Handle different functions
-	if function == "read" {                            //read a variable
+	if function == "read" { //read a variable
 		return t.read(stub, args)
 	}
-	fmt.Println("query did not find func: " + function)
+	fmt.Println("query did not find func: " + function) //error
 
 	return nil, errors.New("Received unknown function query")
 }
 
-// write - invoke function to write key/value pair
+// args has productid, placeid, temperature, and timestamp as strings.
 func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	var name, value string
+	var productid, placeid, temperature, timestamp string
+	var entries []DataEntry
 	var err error
 	fmt.Println("running write()")
 
-	if len(args) != 2 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
+	if len(args) != 4 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 4. Product id, place id, temperature, and taime stamp.")
 	}
 
-	name = args[0]                            //rename for funsies
-	value = args[1]
-	err = stub.PutState(name, []byte(value))  //write the variable into the chaincode state
+	productid = args[0] //rename for fun
+	placeid = args[1]
+	temperature = args[2]
+	timestamp = args[3]
+	dataAsBytes, err := stub.GetState(productid)
+	if err != nil {
+		return nil, err
+	}
+
+	// the data may be empty, in that case just go straight to adding the new
+	// information.
+	if dataAsBytes != nil {
+		// we have a json string, unmarshal it
+		json.Unmarshal(dataAsBytes, entries)
+	}
+	// add the new data entry to the json object
+	new_entry := DataEntry{
+		PlaceId:     placeid,
+		Temperature: temperature,
+		Timestamp:   timestamp,
+	}
+	entries = append(entries, new_entry)
+	// now marshal it back to json, and write it to the cblockchain
+	new_json, _ := json.Marshal(entries)
+	new_json_str := string(new_json)
+
+	err = stub.PutState(productid, []byte(new_json_str)) //write the variable into the chaincode state
 	if err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-// read - query function to read key/value pair
 func (t *SimpleChaincode) read(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	var name, jsonResp string
+	var productid, jsonResp string
 	var err error
 
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting name of the var to query")
+		return nil, errors.New("Incorrect number of arguments. Expecting productid to query")
 	}
 
-	name = args[0]
-	valAsbytes, err := stub.GetState(name)
+	productid = args[0]
+	valAsbytes, err := stub.GetState(productid)
 	if err != nil {
-		jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
+		jsonResp = "{\"Error\":\"Failed to get state for " + productid + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
-	return valAsbytes, nil
+	//return valAsbytes, nil
+	return "asd", nil
 }
