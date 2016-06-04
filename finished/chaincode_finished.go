@@ -112,7 +112,7 @@ func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte
 	// information.
 	if dataAsBytes != nil {
 		// we have a json string, unmarshal it
-		json.Unmarshal(dataAsBytes, entries)
+		json.Unmarshal(dataAsBytes, &entries)
 	}
 	// add the new data entry to the json object
 	new_entry := DataEntry{
